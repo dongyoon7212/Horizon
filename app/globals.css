@@ -1,27 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Horizon CSS Variables ─────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-deep:       #060a14;
+  --bg-mid:        #0c1525;
+  --bg-surface:    #111e35;
+
+  --horizon-fire:  #22d3ee;
+  --horizon-gold:  #38bdf8;
+  --horizon-peach: #7dd3fc;
+
+  --moon-dusk:     #818cf8;
+  --moon-indigo:   #1e1b4b;
+  --moon-silver:   #a5b4fc;
+
+  --text-star:     #d4e1f7;
+  --text-muted:    #4b5e78;
+  --text-dim:      #253047;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─── Base ───────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-star);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* ─── 스크롤바 ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--text-dim);
+  border-radius: 2px;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── 폰트 ───────────────────────────────────────────────────── */
+.font-display { font-family: 'Outfit', sans-serif; }
+.font-body    { font-family: 'Inter', sans-serif; }
+.font-data    { font-family: 'JetBrains Mono', monospace; }
+
+/* ─── 지평선 배경 (Hero 전용) ──────────────────────────────────── */
+.horizon-bg {
+  background: linear-gradient(
+    to top,
+    #140804 0%,
+    #1e0d08 10%,
+    #7a2f0e 14%,
+    #e8622a 16%,
+    #120518 22%,
+    #09060f 55%,
+    #09060f 100%
+  );
+}
+
+/* ─── 지평선 구분선 ───────────────────────────────────────────── */
+.horizon-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(129, 140, 248, 0.25) 20%,
+    rgba(34, 211, 238, 0.4)   45%,
+    rgba(56, 189, 248, 0.5)   50%,
+    rgba(34, 211, 238, 0.4)   55%,
+    rgba(129, 140, 248, 0.25) 80%,
+    transparent 100%
+  );
+}
+
+/* ─── 카드 ────────────────────────────────────────────────────── */
+.horizon-card {
+  background: rgba(16, 13, 28, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 10px;
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.horizon-card:hover {
+  border-color: rgba(34, 211, 238, 0.18);
+  background: rgba(12, 21, 37, 0.9);
+}
+
+.horizon-card.setting:hover {
+  border-color: rgba(129, 140, 248, 0.18);
+}
+
+/* ─── 배지 ────────────────────────────────────────────────────── */
+.badge-rising {
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  color: var(--horizon-peach);
+}
+
+.badge-setting {
+  background: rgba(129, 140, 248, 0.08);
+  border: 1px solid rgba(129, 140, 248, 0.22);
+  color: var(--moon-silver);
+}
+
+/* ─── LIVE 펄스 ───────────────────────────────────────────────── */
+@keyframes live-pulse {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  70%  { transform: scale(2.0); opacity: 0; }
+  100% { transform: scale(2.0); opacity: 0; }
+}
+
+/* ─── 스켈레톤 shimmer ────────────────────────────────────────── */
+@keyframes horizon-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.skeleton-horizon {
+  background: linear-gradient(
+    90deg,
+    rgba(12,21,37,0.6) 0%,
+    rgba(34,211,238,0.05) 40%,
+    rgba(129,140,248,0.07) 60%,
+    rgba(12,21,37,0.6) 100%
+  );
+  background-size: 200% 100%;
+  animation: horizon-shimmer 2.2s linear infinite;
+  border-radius: 6px;
+}
+
+/* ─── Hero 타이틀 라이징 ─────────────────────────────────────── */
+@keyframes horizon-rise {
+  0%   { transform: translateY(28px); opacity: 0; filter: blur(6px); }
+  65%  { filter: blur(0); }
+  100% { transform: translateY(0);    opacity: 1; filter: blur(0); }
+}
+
+/* ─── fade-rise ───────────────────────────────────────────────── */
+@keyframes fade-rise {
+  0%   { transform: translateY(24px); opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* ─── 태양 아크 ──────────────────────────────────────────────── */
+@keyframes sun-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.85; }
+}
+.sun-arc-glow { animation: sun-pulse 5s ease-in-out infinite; }
+
+/* ─── 그라데이션 텍스트 ───────────────────────────────────────── */
+.gradient-text-rise {
+  background: linear-gradient(135deg, #22d3ee 0%, #38bdf8 60%, #7dd3fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-set {
+  background: linear-gradient(135deg, #818cf8 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero 타이틀 전용 — 시안 글로우 + 그라데이션 텍스트 */
+.hero-glow {
+  text-shadow:
+    0 0 40px rgba(34, 211, 238, 0.45),
+    0 0 90px rgba(34, 211, 238, 0.15);
+}
+
+.hero-title-gradient {
+  background: linear-gradient(160deg, #67e8f9 0%, #22d3ee 35%, #818cf8 72%, #4338ca 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── CountUp 글로우 애니메이션 ────────────────────────────────── */
+@keyframes count-glow-rise {
+  0%, 100% { text-shadow: 0 0 8px rgba(34, 211, 238, 0.35); }
+  50%       { text-shadow: 0 0 18px rgba(34, 211, 238, 0.7), 0 0 32px rgba(34, 211, 238, 0.25); }
+}
+
+@keyframes count-glow-set {
+  0%, 100% { text-shadow: 0 0 8px rgba(129, 140, 248, 0.35); }
+  50%       { text-shadow: 0 0 18px rgba(129, 140, 248, 0.7), 0 0 32px rgba(129, 140, 248, 0.25); }
+}
+
+/* ─── 색상 유틸리티 ───────────────────────────────────────────── */
+.text-star   { color: var(--text-star); }
+.text-muted  { color: var(--text-muted); }
+.text-fire   { color: var(--horizon-fire); }
+.text-gold   { color: var(--horizon-gold); }
+.text-peach  { color: var(--horizon-peach); }
+.text-dusk   { color: var(--moon-dusk); }
+.text-silver { color: var(--moon-silver); }
+.text-dim    { color: var(--text-dim); }
+
+.bg-deep    { background-color: var(--bg-deep); }
+.bg-mid     { background-color: var(--bg-mid); }
+.bg-surface { background-color: var(--bg-surface); }
