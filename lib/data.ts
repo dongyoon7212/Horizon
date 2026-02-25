@@ -16,17 +16,17 @@ const MOCK_TOP_MODELS: HFModel[] = [
 ]
 
 const MOCK_RISING_KEYWORDS: KeywordTrend[] = [
-  { keyword: 'Claude 3.5',        score: 98, change_pct: 234, trend: 'rising' },
-  { keyword: 'Gemini Flash',      score: 91, change_pct: 187, trend: 'rising' },
-  { keyword: 'Llama 3.2',         score: 85, change_pct: 142, trend: 'rising' },
-  { keyword: 'Stable Diffusion 3',score: 79, change_pct: 98,  trend: 'rising' },
-  { keyword: 'Mistral Large',     score: 72, change_pct: 76,  trend: 'rising' },
+  { keyword: 'DeepSeek R1', score: 97, change_pct: 890, trend: 'rising' },
+  { keyword: 'Grok 3',      score: 88, change_pct: 440, trend: 'rising' },
+  { keyword: 'Claude 3.7',  score: 85, change_pct: 310, trend: 'rising' },
+  { keyword: 'Gemini 2.0',  score: 82, change_pct: 260, trend: 'rising' },
+  { keyword: 'AI Agent',    score: 86, change_pct: 230, trend: 'rising' },
 ]
 
 const MOCK_SETTING_KEYWORDS: KeywordTrend[] = [
-  { keyword: 'GPT-3',   score: 62, change_pct: -45, trend: 'falling' },
-  { keyword: 'DALL-E 2',score: 50, change_pct: -38, trend: 'falling' },
-  { keyword: 'PaLM 2',  score: 40, change_pct: -29, trend: 'falling' },
+  { keyword: 'GPT-4',            score: 58, change_pct: -32, trend: 'falling' },
+  { keyword: 'Stable Diffusion', score: 48, change_pct: -28, trend: 'falling' },
+  { keyword: 'Bard',             score: 20, change_pct: -71, trend: 'falling' },
 ]
 
 const MOCK_STATS: DashboardStats = {
