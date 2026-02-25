@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import HorizonCard from '@/components/ui/HorizonCard'
 import ChangeBadge from '@/components/ui/ChangeBadge'
@@ -31,54 +32,55 @@ export default function TopModels({ models }: Props) {
           const modelName = slashIdx !== -1 ? model.model_id.slice(slashIdx + 1) : model.model_id
 
           return (
-            <motion.div
-              key={model.model_id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-30px' }}
-              transition={{ delay: 0.05 * i, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <HorizonCard className="flex items-center gap-4 px-4 py-3">
-                {/* 순위 */}
-                <span
-                  className="font-data font-bold text-xl w-6 shrink-0 text-center tabular-nums"
-                  style={{ color: rankColor[i] ?? 'var(--text-dim)' }}
-                >
-                  {model.rank}
-                </span>
+            <Link key={model.model_id} href={`/models/${model.model_id}`} className="block group">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-30px' }}
+                transition={{ delay: 0.05 * i, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <HorizonCard className="flex items-center gap-4 px-4 py-3 transition-all duration-200 group-hover:border-cyan-500/20">
+                  {/* 순위 */}
+                  <span
+                    className="font-data font-bold text-xl w-6 shrink-0 text-center tabular-nums"
+                    style={{ color: rankColor[i] ?? 'var(--text-dim)' }}
+                  >
+                    {model.rank}
+                  </span>
 
-                {/* 모델명 + 메타 */}
-                <div className="flex-1 min-w-0">
-                  {/* 모델 이름 */}
-                  <p className="font-body text-sm font-medium truncate" style={{ color: 'var(--text-star)' }}>
-                    {modelName}
-                  </p>
-                  {/* org + 카테고리 + 다운로드 */}
-                  <div className="flex items-center gap-2 mt-0.5 min-w-0">
-                    {org && (
+                  {/* 모델명 + 메타 */}
+                  <div className="flex-1 min-w-0">
+                    {/* 모델 이름 */}
+                    <p className="font-body text-sm font-medium truncate" style={{ color: 'var(--text-star)' }}>
+                      {modelName}
+                    </p>
+                    {/* org + 카테고리 + 다운로드 */}
+                    <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                      {org && (
+                        <span
+                          className="font-data text-xs truncate shrink-0 max-w-[9rem]"
+                          style={{ color: 'var(--text-dim)' }}
+                        >
+                          {org}
+                        </span>
+                      )}
                       <span
-                        className="font-data text-xs truncate shrink-0 max-w-[9rem]"
-                        style={{ color: 'var(--text-dim)' }}
+                        className="text-xs px-1.5 py-px rounded border font-data shrink-0"
+                        style={categoryStyle[model.category] ?? categoryStyle.Other}
                       >
-                        {org}
+                        {model.category}
                       </span>
-                    )}
-                    <span
-                      className="text-xs px-1.5 py-px rounded border font-data shrink-0"
-                      style={categoryStyle[model.category] ?? categoryStyle.Other}
-                    >
-                      {model.category}
-                    </span>
-                    <span className="text-xs font-data shrink-0" style={{ color: 'var(--text-muted)' }}>
-                      {formatNumber(model.downloads)}
-                    </span>
+                      <span className="text-xs font-data shrink-0" style={{ color: 'var(--text-muted)' }}>
+                        {formatNumber(model.downloads)}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* 변화율 배지 — 양수/음수/0 자동 분기 */}
-                <ChangeBadge value={model.change_pct} />
-              </HorizonCard>
-            </motion.div>
+                  {/* 변화율 배지 */}
+                  <ChangeBadge value={model.change_pct} />
+                </HorizonCard>
+              </motion.div>
+            </Link>
           )
         })}
       </div>

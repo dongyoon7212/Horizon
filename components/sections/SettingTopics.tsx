@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import HorizonCard from '@/components/ui/HorizonCard'
-import SettingBadge from '@/components/ui/SettingBadge'
+import ChangeBadge from '@/components/ui/ChangeBadge'
 import type { KeywordTrend } from '@/lib/types'
 
 interface Props {
@@ -29,41 +30,46 @@ export default function SettingTopics({ topics }: Props) {
 
       <div className="space-y-2">
         {topics.map((topic, i) => (
-          <motion.div
+          <Link
             key={topic.keyword}
-            initial={{ x: 20, opacity: 0 }}
-            whileInView={{ x: 0, opacity: 1 }}
-            viewport={{ once: true, margin: '-30px' }}
-            transition={{ delay: 0.06 * i, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            href={`/keywords/${encodeURIComponent(topic.keyword)}`}
+            className="block group"
           >
-            <HorizonCard variant="setting" className="flex items-center gap-3 px-4 py-3">
-              <span
-                className="font-data text-lg w-5 shrink-0 text-center tabular-nums"
-                style={{ color: 'var(--text-dim)' }}
-              >
-                {i + 1}
-              </span>
+            <motion.div
+              initial={{ x: 20, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true, margin: '-30px' }}
+              transition={{ delay: 0.06 * i, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <HorizonCard variant="setting" className="flex items-center gap-3 px-4 py-3 transition-all duration-200 group-hover:border-indigo-500/20">
+                <span
+                  className="font-data text-lg w-5 shrink-0 text-center tabular-nums"
+                  style={{ color: 'var(--text-dim)' }}
+                >
+                  {i + 1}
+                </span>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-body text-sm font-semibold" style={{ color: 'var(--text-star)' }}>
-                    {topic.keyword}
-                  </span>
-                  <SettingBadge value={`${topic.change_pct}%`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-body text-sm font-semibold" style={{ color: 'var(--text-star)' }}>
+                      {topic.keyword}
+                    </span>
+                    <ChangeBadge value={topic.change_pct} />
+                  </div>
+                  <div className="h-px rounded-full" style={{ background: 'var(--text-dim)' }}>
+                    <motion.div
+                      initial={{ width: `${topic.score}%` }}
+                      whileInView={{ width: `${Math.round(topic.score * 0.65)}%` }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.25 + i * 0.07, duration: 0.9, ease: 'easeInOut' }}
+                      className="h-px rounded-full"
+                      style={{ background: 'var(--moon-dusk)' }}
+                    />
+                  </div>
                 </div>
-                <div className="h-px rounded-full" style={{ background: 'var(--text-dim)' }}>
-                  <motion.div
-                    initial={{ width: `${topic.score}%` }}
-                    whileInView={{ width: `${Math.round(topic.score * 0.65)}%` }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.25 + i * 0.07, duration: 0.9, ease: 'easeInOut' }}
-                    className="h-px rounded-full"
-                    style={{ background: 'var(--moon-dusk)' }}
-                  />
-                </div>
-              </div>
-            </HorizonCard>
-          </motion.div>
+              </HorizonCard>
+            </motion.div>
+          </Link>
         ))}
       </div>
     </section>

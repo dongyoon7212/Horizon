@@ -38,6 +38,60 @@ const MOCK_STATS: DashboardStats = {
 
 // ─── 데이터 fetching 함수들 ─────────────────────────────────────
 
+export async function getAllModels(): Promise<HFModel[]> {
+  const db = getDb()
+  if (!db) return MOCK_TOP_MODELS
+
+  const { data, error } = await db
+    .from('hf_models')
+    .select('*')
+    .order('rank', { ascending: true })
+
+  if (error || !data?.length) return MOCK_TOP_MODELS
+  return data as HFModel[]
+}
+
+export async function getModelById(modelId: string): Promise<HFModel | null> {
+  const db = getDb()
+  if (!db) return MOCK_TOP_MODELS.find(m => m.model_id === modelId) ?? null
+
+  const { data, error } = await db
+    .from('hf_models')
+    .select('*')
+    .eq('model_id', modelId)
+    .single()
+
+  if (error || !data) return null
+  return data as HFModel
+}
+
+export async function getAllKeywords(): Promise<KeywordTrend[]> {
+  const db = getDb()
+  if (!db) return [...MOCK_RISING_KEYWORDS, ...MOCK_SETTING_KEYWORDS]
+
+  const { data, error } = await db
+    .from('keyword_trends')
+    .select('*')
+    .order('score', { ascending: false })
+
+  if (error || !data?.length) return [...MOCK_RISING_KEYWORDS, ...MOCK_SETTING_KEYWORDS]
+  return data as KeywordTrend[]
+}
+
+export async function getKeywordByName(keyword: string): Promise<KeywordTrend | null> {
+  const db = getDb()
+  if (!db) return null
+
+  const { data, error } = await db
+    .from('keyword_trends')
+    .select('*')
+    .eq('keyword', keyword)
+    .single()
+
+  if (error || !data) return null
+  return data as KeywordTrend
+}
+
 export async function getTopModels(): Promise<HFModel[]> {
   const db = getDb()
   if (!db) return MOCK_TOP_MODELS
