@@ -114,7 +114,7 @@ export async function GET(req: Request) {
     ])
 
     // 각 task별 블록리스트 필터링 + org 캡(3개) 적용 후 상위 N개 선택 (카테고리 다양성 보장)
-    function topN(models: any[], n: number): any[] {
+    const topN = (models: any[], n: number): any[] => {
       const filtered = models.filter(
         m => m.modelId && !isBlocklisted(m.modelId) && (m.downloads ?? 0) > 0
       )
