@@ -12,7 +12,7 @@ const KEYWORDS = [
   'Midjourney', 'Whisper', 'Bard', 'GPT-3',
 ]
 
-// Google Trends에서 단일 키워드 점수 조회 (현재 + 1주전)
+// Google Trends에서 단일 키워드 점수 조회
 async function fetchTrend(keyword: string): Promise<{ score: number; scorePrev: number } | null> {
   try {
     const endTime   = new Date()
@@ -35,6 +35,28 @@ async function fetchTrend(keyword: string): Promise<{ score: number; scorePrev: 
   }
 }
 
+// 퍼센타일 기반 트렌드 분류 — 전체 키워드 중 상대적 위치로 결정
+// (AI 붐 시기에는 모두 rising이 되는 문제를 방지)
+function assignTrends(rows: any[]): any[] {
+  if (rows.length === 0) return rows
+
+  // change_pct 기준 오름차순 정렬
+  const sorted = [...rows].sort((a, b) => a.change_pct - b.change_pct)
+  const n = sorted.length
+
+  // 하위 25% → falling, 상위 40% → rising, 나머지 → stable
+  const fallingCutoff = Math.ceil(n * 0.25)   // ~5개
+  const risingCutoff  = Math.floor(n * 0.60)  // index 12~ → rising
+
+  sorted.forEach((row, i) => {
+    row.trend = i < fallingCutoff ? 'falling'
+              : i >= risingCutoff ? 'rising'
+              : 'stable'
+  })
+
+  return sorted
+}
+
 export async function GET(req: Request) {
   const isDev = process.env.NODE_ENV === 'development'
   const secret = req.headers.get('x-cron-secret')
@@ -45,17 +67,10 @@ export async function GET(req: Request) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
 
-  // 기존 DB 데이터 로드 (fallback용)
-  const { data: existing } = await db
-    .from('keyword_trends')
-    .select('keyword, score, change_pct, trend')
-
-  const existingMap = new Map(existing?.map((r: any) => [r.keyword, r]) ?? [])
-
   const now = new Date().toISOString()
   const weekStart = now.split('T')[0]
   const results: { keyword: string; status: string }[] = []
-  const rows: any[] = []
+  const rawRows: any[] = []
 
   // 순차 처리 (Google Trends rate limit 대응)
   for (const keyword of KEYWORDS) {
@@ -64,7 +79,6 @@ export async function GET(req: Request) {
     const trend = await fetchTrend(keyword)
 
     if (!trend) {
-      // API 실패 → 기존 DB 값 유지
       results.push({ keyword, status: 'skipped' })
       continue
     }
@@ -74,18 +88,12 @@ export async function GET(req: Request) {
       ? Math.round(((score - scorePrev) / scorePrev) * 100)
       : 0
 
-    const trendDir = changePct > 10
-      ? 'rising'
-      : changePct < -10
-      ? 'falling'
-      : 'stable'
-
-    rows.push({
+    rawRows.push({
       keyword,
       score,
       score_prev:   scorePrev,
       change_pct:   changePct,
-      trend:        trendDir,
+      trend:        'stable', // 아래에서 재계산
       week_start:   weekStart,
       collected_at: now,
     })
@@ -93,9 +101,12 @@ export async function GET(req: Request) {
     results.push({ keyword, status: `${score} (${changePct > 0 ? '+' : ''}${changePct}%)` })
   }
 
-  if (rows.length === 0) {
+  if (rawRows.length === 0) {
     return NextResponse.json({ ok: false, error: 'All Google Trends requests failed', results })
   }
+
+  // 퍼센타일 기반 트렌드 재분류
+  const rows = assignTrends(rawRows)
 
   const { error } = await db
     .from('keyword_trends')
@@ -103,10 +114,19 @@ export async function GET(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // 분류 결과 요약
+  const summary = rows.reduce((acc: any, r: any) => {
+    acc[r.trend] = (acc[r.trend] ?? 0) + 1
+    return acc
+  }, {})
+
   return NextResponse.json({
     ok: true,
     collected: rows.length,
     skipped: KEYWORDS.length - rows.length,
-    results,
+    distribution: summary,
+    results: rows
+      .sort((a: any, b: any) => b.change_pct - a.change_pct)
+      .map((r: any) => ({ keyword: r.keyword, trend: r.trend, status: `${r.score} (${r.change_pct > 0 ? '+' : ''}${r.change_pct}%)` })),
   })
 }

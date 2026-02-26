@@ -8,11 +8,11 @@ function getDb() {
 
 // ─── Mock 데이터 (Supabase 미연결 시 fallback) ───────────────────
 const MOCK_TOP_MODELS: HFModel[] = [
-  { rank: 1, model_id: 'meta-llama/Llama-3.2-11B-Vision',    downloads: 4_820_000, change_pct: 23,  category: 'Multimodal', trend: 'rising' },
-  { rank: 2, model_id: 'mistralai/Mistral-7B-Instruct-v0.3', downloads: 3_410_000, change_pct: 18,  category: 'LLM',        trend: 'rising' },
-  { rank: 3, model_id: 'stabilityai/stable-diffusion-3',     downloads: 2_950_000, change_pct: 31,  category: 'Image',      trend: 'rising' },
-  { rank: 4, model_id: 'openai/whisper-large-v3',            downloads: 2_100_000, change_pct: 9,   category: 'Audio',      trend: 'rising' },
-  { rank: 5, model_id: 'google/gemma-2-9b-it',               downloads: 1_870_000, change_pct: 15,  category: 'LLM',        trend: 'rising' },
+  { rank: 1, model_id: 'deepseek-ai/DeepSeek-R1',              downloads: 8_420_000, change_pct: 112, category: 'LLM',        trend: 'rising' },
+  { rank: 2, model_id: 'meta-llama/Llama-3.3-70B-Instruct',    downloads: 6_130_000, change_pct: 34,  category: 'LLM',        trend: 'rising' },
+  { rank: 3, model_id: 'mistralai/Mistral-Small-3.1-24B',      downloads: 4_210_000, change_pct: 28,  category: 'LLM',        trend: 'rising' },
+  { rank: 4, model_id: 'black-forest-labs/FLUX.1-dev',         downloads: 3_880_000, change_pct: 19,  category: 'Image',      trend: 'rising' },
+  { rank: 5, model_id: 'openai/whisper-large-v3-turbo',        downloads: 2_950_000, change_pct: 41,  category: 'Audio',      trend: 'rising' },
 ]
 
 const MOCK_RISING_KEYWORDS: KeywordTrend[] = [
@@ -114,7 +114,7 @@ export async function getRisingKeywords(): Promise<KeywordTrend[]> {
     .from('keyword_trends')
     .select('*')
     .eq('trend', 'rising')
-    .order('score', { ascending: false })
+    .order('change_pct', { ascending: false }) // 상승률 높은 순
     .limit(5)
 
   if (error || !data?.length) return MOCK_RISING_KEYWORDS
@@ -125,15 +125,25 @@ export async function getSettingKeywords(): Promise<KeywordTrend[]> {
   const db = getDb()
   if (!db) return MOCK_SETTING_KEYWORDS
 
-  const { data, error } = await db
+  // 1차: trend = 'falling' 항목
+  const { data: falling, error } = await db
     .from('keyword_trends')
     .select('*')
     .eq('trend', 'falling')
     .order('change_pct', { ascending: true })
     .limit(3)
 
-  if (error || !data?.length) return MOCK_SETTING_KEYWORDS
-  return data as KeywordTrend[]
+  if (!error && falling && falling.length >= 3) return falling as KeywordTrend[]
+
+  // 2차 fallback: falling이 부족하면 change_pct 하위 3개 (상대적으로 가장 덜 오른 것)
+  const { data: bottom } = await db
+    .from('keyword_trends')
+    .select('*')
+    .order('change_pct', { ascending: true })
+    .limit(3)
+
+  if (bottom?.length) return bottom as KeywordTrend[]
+  return MOCK_SETTING_KEYWORDS
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
