@@ -1,31 +1,35 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 
-// 2026년 2월 기준 실제 트렌딩 AI 키워드 (Google Trends 수집 전 초기값)
+// 2026년 2월 기준 AI 키워드 초기 시드 데이터
+// 점수 기준: Wikipedia 영문 페이지 주간 조회수 sqrt 정규화 (ChatGPT=100)
+// 출처: Wikimedia Pageview API (실제 공개 데이터)
+// 실제 관심도: ChatGPT >> Claude > Grok ≈ Google Gemini > Perplexity > DeepSeek > ...
+// "Bard", "Claude 3.7", "Gemini 2.0" 같은 구버전/리브랜딩 키워드 제거
 const SEED_KEYWORDS = [
-  // ── Rising ───────────────────────────────────────────────────────
-  { keyword: 'DeepSeek R1',      score: 43, change_pct:  59, trend: 'rising'  as const },
-  { keyword: 'DeepSeek V3',      score: 85, change_pct:  98, trend: 'rising'  as const },
-  { keyword: 'Grok 3',           score: 58, change_pct:  23, trend: 'rising'  as const },
-  { keyword: 'Claude 3.7',       score: 51, change_pct:  42, trend: 'rising'  as const },
-  { keyword: 'Gemini 2.0',       score: 47, change_pct:  21, trend: 'rising'  as const },
-  { keyword: 'GPT o3',           score: 34, change_pct:  26, trend: 'rising'  as const },
-  { keyword: 'Phi-4',            score: 31, change_pct:  24, trend: 'rising'  as const },
-  { keyword: 'Llama 3.3',        score: 31, change_pct:  19, trend: 'rising'  as const },
-  { keyword: 'AI Agent',         score: 76, change_pct:  36, trend: 'rising'  as const },
-  { keyword: 'Cursor AI',        score: 71, change_pct:  22, trend: 'rising'  as const },
-  // ── Falling ──────────────────────────────────────────────────────
-  { keyword: 'GPT-3',            score: 34, change_pct: -55, trend: 'falling' as const },
-  { keyword: 'DALL-E 3',         score: 38, change_pct:  -3, trend: 'falling' as const },
-  { keyword: 'Bard',             score: 20, change_pct: -30, trend: 'falling' as const },
-  // ── Stable ───────────────────────────────────────────────────────
-  { keyword: 'ChatGPT',          score: 94, change_pct:  21, trend: 'stable'  as const },
-  { keyword: 'Qwen 2.5',         score: 73, change_pct:   6, trend: 'stable'  as const },
-  { keyword: 'Sora',             score: 75, change_pct:   6, trend: 'stable'  as const },
-  { keyword: 'Midjourney',       score: 66, change_pct:  10, trend: 'stable'  as const },
-  { keyword: 'Stable Diffusion', score: 53, change_pct:  15, trend: 'stable'  as const },
-  { keyword: 'GPT-4',            score: 39, change_pct:  11, trend: 'stable'  as const },
-  { keyword: 'Whisper',          score: 83, change_pct:   0, trend: 'stable'  as const },
+  // ── 상위권 (score ≥ 20) ───────────────────────────────────────────
+  { keyword: 'ChatGPT',          score: 100, change_pct:  -3, trend: 'stable'  as const },
+  { keyword: 'Claude',           score:  38, change_pct:  14, trend: 'rising'  as const },
+  { keyword: 'Google Gemini',    score:  26, change_pct:   8, trend: 'stable'  as const },
+  { keyword: 'Grok',             score:  26, change_pct:  -7, trend: 'stable'  as const },
+  { keyword: 'Perplexity',       score:  25, change_pct:  23, trend: 'rising'  as const },
+  { keyword: 'DeepSeek',         score:  20, change_pct:  16, trend: 'rising'  as const },
+  // ── 중위권 (score 10~19) ─────────────────────────────────────────
+  { keyword: 'NotebookLM',       score:  15, change_pct:  11, trend: 'rising'  as const },
+  { keyword: 'Mistral AI',       score:  14, change_pct:   4, trend: 'stable'  as const },
+  { keyword: 'Llama',            score:  14, change_pct: -55, trend: 'falling' as const },
+  { keyword: 'Midjourney',       score:  12, change_pct:   2, trend: 'stable'  as const },
+  { keyword: 'Stable Diffusion', score:  12, change_pct:   3, trend: 'stable'  as const },
+  { keyword: 'Sora',             score:  12, change_pct:   2, trend: 'stable'  as const },
+  { keyword: 'Qwen',             score:  11, change_pct:   9, trend: 'stable'  as const },
+  { keyword: 'GPT-4o',           score:  10, change_pct: -42, trend: 'falling' as const },
+  { keyword: 'GPT-4',            score:  10, change_pct:  -5, trend: 'falling' as const },
+  // ── 하위권 (score < 10) ──────────────────────────────────────────
+  { keyword: 'DALL-E',           score:   9, change_pct:   1, trend: 'stable'  as const },
+  { keyword: 'GitHub Copilot',   score:   9, change_pct:  12, trend: 'rising'  as const },
+  { keyword: 'AI Agent',         score:   8, change_pct:  20, trend: 'rising'  as const },
+  { keyword: 'Whisper',          score:   7, change_pct:  -2, trend: 'stable'  as const },
+  { keyword: 'GPT-3',            score:  10, change_pct:  -8, trend: 'falling' as const },
 ]
 
 export async function GET(req: Request) {

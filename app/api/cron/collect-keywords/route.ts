@@ -1,65 +1,77 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
-// @ts-ignore
-import googleTrends from 'google-trends-api'
 
-// 추적할 AI 키워드 목록
-const KEYWORDS = [
-  'DeepSeek R1', 'DeepSeek V3', 'Grok 3', 'Claude 3.7',
-  'Gemini 2.0', 'GPT o3', 'Phi-4', 'Qwen 2.5',
-  'Llama 3.3', 'AI Agent', 'Cursor AI', 'Sora',
-  'GPT-4', 'ChatGPT', 'Stable Diffusion', 'DALL-E 3',
-  'Midjourney', 'Whisper', 'Bard', 'GPT-3',
-]
+// 키워드 → Wikipedia 영문 제목 매핑
+// Wikipedia Pageview API는 무료·공개 데이터이며 서버에서 IP 차단 없이 동작
+const KEYWORD_WIKI_MAP: Record<string, string> = {
+  'ChatGPT':          'ChatGPT',
+  'Claude':           'Claude_(language_model)',
+  'Google Gemini':    'Google_Gemini',
+  'Grok':             'Grok_(chatbot)',
+  'Perplexity':       'Perplexity_AI',
+  'DeepSeek':         'DeepSeek',
+  'NotebookLM':       'NotebookLM',
+  'Mistral AI':       'Mistral_AI',
+  'Llama':            'Llama_(language_model)',
+  'Midjourney':       'Midjourney',
+  'Stable Diffusion': 'Stable_Diffusion',
+  'Sora':             'Sora_(text-to-video_model)',
+  'Qwen':             'Qwen',
+  'GPT-4o':           'GPT-4o',
+  'DALL-E':           'DALL-E',
+  'GitHub Copilot':   'GitHub_Copilot',
+  'AI Agent':         'Intelligent_agent',
+  'Whisper':          'Whisper_(speech_recognition_system)',
+  'GPT-4':            'GPT-4',
+  'GPT-3':            'GPT-3',
+}
 
-// Google Trends에서 단일 키워드 점수 조회
-async function fetchTrend(keyword: string): Promise<{ score: number; scorePrev: number } | null> {
+// Wikipedia Pageview API — 최근 30일 일별 조회수 가져오기
+async function fetchWikiViews(wikiTitle: string): Promise<{ recent: number; prev: number } | null> {
   try {
-    const endTime   = new Date()
-    const startTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30일
+    const end   = new Date()
+    const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const fmt   = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '')
 
-    const raw = await googleTrends.interestOverTime({ keyword, startTime, endTime })
-    const parsed = JSON.parse(raw)
-    const timeline: { value: number[] }[] = parsed?.default?.timelineData ?? []
+    const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/all-agents/${encodeURIComponent(wikiTitle)}/daily/${fmt(start)}00/${fmt(end)}00`
 
-    if (timeline.length < 2) return null
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'HorizonAIDashboard/1.0 (https://github.com/dongyoon7212/Horizon)' },
+    })
+    if (!res.ok) return null
 
-    const score     = timeline[timeline.length - 1]?.value[0] ?? 0
-    const scorePrev = timeline[timeline.length - 8]?.value[0]  // ~1주 전
-                   ?? timeline[0]?.value[0]
-                   ?? score
+    const data = await res.json()
+    const items: { views: number }[] = data.items ?? []
+    if (items.length < 14) return null
 
-    return { score, scorePrev }
+    const recent = items.slice(-7).reduce((s, x) => s + x.views, 0)  // 최근 7일
+    const prev   = items.slice(-14, -7).reduce((s, x) => s + x.views, 0) // 그 이전 7일
+
+    return { recent, prev }
   } catch {
     return null
   }
 }
 
-// 퍼센타일 기반 트렌드 분류 — 전체 키워드 중 상대적 위치로 결정
-// (AI 붐 시기에는 모두 rising이 되는 문제를 방지)
+// 퍼센타일 기반 트렌드 분류
+// (AI 붐 시기에 모두 rising이 되는 문제 방지)
 function assignTrends(rows: any[]): any[] {
   if (rows.length === 0) return rows
-
-  // change_pct 기준 오름차순 정렬
   const sorted = [...rows].sort((a, b) => a.change_pct - b.change_pct)
   const n = sorted.length
-
-  // 하위 25% → falling, 상위 40% → rising, 나머지 → stable
-  const fallingCutoff = Math.ceil(n * 0.25)   // ~5개
-  const risingCutoff  = Math.floor(n * 0.60)  // index 12~ → rising
-
+  const fallingCutoff = Math.ceil(n * 0.25)   // 하위 25% → falling
+  const risingCutoff  = Math.floor(n * 0.60)  // 상위 40% → rising
   sorted.forEach((row, i) => {
     row.trend = i < fallingCutoff ? 'falling'
               : i >= risingCutoff ? 'rising'
               : 'stable'
   })
-
   return sorted
 }
 
 export async function GET(req: Request) {
-  const isDev = process.env.NODE_ENV === 'development'
-  const secret = req.headers.get('x-cron-secret')
+  const isDev   = process.env.NODE_ENV === 'development'
+  const secret  = req.headers.get('x-cron-secret')
   if (!isDev && secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -67,25 +79,33 @@ export async function GET(req: Request) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
 
-  const now = new Date().toISOString()
+  const now       = new Date().toISOString()
   const weekStart = now.split('T')[0]
-  const results: { keyword: string; status: string }[] = []
   const rawRows: any[] = []
+  const results:  { keyword: string; status: string }[] = []
 
-  // 순차 처리 (Google Trends rate limit 대응)
-  for (const keyword of KEYWORDS) {
-    await new Promise(r => setTimeout(r, 1200)) // 1.2초 간격
+  // 최대 Wikipedia 조회수 (정규화 기준용, ChatGPT 기준)
+  let maxViews = 1
 
-    const trend = await fetchTrend(keyword)
-
-    if (!trend) {
-      results.push({ keyword, status: 'skipped' })
-      continue
+  // 1차 패스: 모든 키워드 조회수 수집
+  const viewData: Record<string, { recent: number; prev: number }> = {}
+  for (const [keyword, wikiTitle] of Object.entries(KEYWORD_WIKI_MAP)) {
+    const data = await fetchWikiViews(wikiTitle)
+    if (data) {
+      viewData[keyword] = data
+      if (data.recent > maxViews) maxViews = data.recent
     }
+    await new Promise(r => setTimeout(r, 200)) // 속도 제한
+  }
 
-    const { score, scorePrev } = trend
-    const changePct = scorePrev > 0
-      ? Math.round(((score - scorePrev) / scorePrev) * 100)
+  // 2차 패스: 점수 정규화 (sqrt 스케일 → 0~100)
+  // sqrt 스케일을 사용해 ChatGPT 독주 효과를 완화
+  const sqrtMax = Math.sqrt(maxViews)
+  for (const [keyword, data] of Object.entries(viewData)) {
+    const score     = Math.round((Math.sqrt(data.recent) / sqrtMax) * 100)
+    const scorePrev = Math.round((Math.sqrt(data.prev)   / sqrtMax) * 100)
+    const changePct = data.prev > 0
+      ? Math.round(((data.recent - data.prev) / data.prev) * 100)
       : 0
 
     rawRows.push({
@@ -93,16 +113,19 @@ export async function GET(req: Request) {
       score,
       score_prev:   scorePrev,
       change_pct:   changePct,
-      trend:        'stable', // 아래에서 재계산
+      trend:        'stable', // 아래 assignTrends에서 재계산
       week_start:   weekStart,
       collected_at: now,
     })
 
-    results.push({ keyword, status: `${score} (${changePct > 0 ? '+' : ''}${changePct}%)` })
+    results.push({
+      keyword,
+      status: `score:${score} views:${data.recent.toLocaleString()} (${changePct > 0 ? '+' : ''}${changePct}%)`,
+    })
   }
 
   if (rawRows.length === 0) {
-    return NextResponse.json({ ok: false, error: 'All Google Trends requests failed', results })
+    return NextResponse.json({ ok: false, error: 'Wikipedia API returned no data', results })
   }
 
   // 퍼센타일 기반 트렌드 재분류
@@ -114,7 +137,6 @@ export async function GET(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // 분류 결과 요약
   const summary = rows.reduce((acc: any, r: any) => {
     acc[r.trend] = (acc[r.trend] ?? 0) + 1
     return acc
@@ -122,11 +144,16 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     ok: true,
+    source: 'Wikipedia Pageview API',
     collected: rows.length,
-    skipped: KEYWORDS.length - rows.length,
+    skipped: Object.keys(KEYWORD_WIKI_MAP).length - rows.length,
     distribution: summary,
     results: rows
-      .sort((a: any, b: any) => b.change_pct - a.change_pct)
-      .map((r: any) => ({ keyword: r.keyword, trend: r.trend, status: `${r.score} (${r.change_pct > 0 ? '+' : ''}${r.change_pct}%)` })),
+      .sort((a: any, b: any) => b.score - a.score)
+      .map((r: any) => ({
+        keyword: r.keyword,
+        trend: r.trend,
+        status: results.find(x => x.keyword === r.keyword)?.status ?? '',
+      })),
   })
 }

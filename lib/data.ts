@@ -16,17 +16,17 @@ const MOCK_TOP_MODELS: HFModel[] = [
 ]
 
 const MOCK_RISING_KEYWORDS: KeywordTrend[] = [
-  { keyword: 'DeepSeek R1', score: 97, change_pct: 890, trend: 'rising' },
-  { keyword: 'Grok 3',      score: 88, change_pct: 440, trend: 'rising' },
-  { keyword: 'Claude 3.7',  score: 85, change_pct: 310, trend: 'rising' },
-  { keyword: 'Gemini 2.0',  score: 82, change_pct: 260, trend: 'rising' },
-  { keyword: 'AI Agent',    score: 86, change_pct: 230, trend: 'rising' },
+  { keyword: 'Claude',       score: 38, change_pct: 14, trend: 'rising' },
+  { keyword: 'Perplexity',   score: 25, change_pct: 23, trend: 'rising' },
+  { keyword: 'DeepSeek',     score: 20, change_pct: 16, trend: 'rising' },
+  { keyword: 'NotebookLM',   score: 15, change_pct: 11, trend: 'rising' },
+  { keyword: 'AI Agent',     score:  8, change_pct: 20, trend: 'rising' },
 ]
 
 const MOCK_SETTING_KEYWORDS: KeywordTrend[] = [
-  { keyword: 'GPT-4',            score: 58, change_pct: -32, trend: 'falling' },
-  { keyword: 'Stable Diffusion', score: 48, change_pct: -28, trend: 'falling' },
-  { keyword: 'Bard',             score: 20, change_pct: -71, trend: 'falling' },
+  { keyword: 'Llama',  score: 14, change_pct: -55, trend: 'falling' },
+  { keyword: 'GPT-4o', score: 10, change_pct: -42, trend: 'falling' },
+  { keyword: 'GPT-4',  score: 10, change_pct:  -5, trend: 'falling' },
 ]
 
 const MOCK_STATS: DashboardStats = {
